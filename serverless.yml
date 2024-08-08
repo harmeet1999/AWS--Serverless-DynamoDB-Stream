@@ -1,0 +1,87 @@
+service: product
+
+
+provider:
+  name: aws
+  runtime: nodejs16.x
+  stage: 'staging'
+  region: us-east-1
+  profile: default
+  iamRoleStatements:
+    - Effect: Allow
+      Action: # Gives permission to DynamoDB tables in a specific region
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource: 'arn:aws:dynamodb:${self:custom.region}:*:*'
+      
+custom:
+  stage: ${opt:stage, self:provider.stage}
+  region: ${opt:region, self:provider.region}
+
+
+package:
+  individually: true
+  exclude:
+    - ./**
+  include:
+    - build/**
+    - node_modules/**/*
+
+functions:
+  product-api:
+    name: product-crud
+    handler: build/server/index.handler
+    description: Assignment
+    memorySize: 512
+    timeout: 29
+    environment: ${file(./env.yml):${self:custom.stage}}
+    events:
+      - http:
+          path: test
+          method: get
+          integration: aws_proxy
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+      - http:
+          path: create
+          method: post
+          integration: aws_proxy
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+      - http:
+          path: getbyResourceId/{userId}
+          method: get
+          integration: aws_proxy
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+      - http:
+          path: search/{name}
+          method: get
+          integration: aws_proxy
+          cors:
+            origins:
+              - '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+  dynamoStream:
+    handler: build/connections/stream.dynamoStream
+    events:
+      - stream:
+          type: dynamodb
+          arn: arn:aws:dynamodb:us-east-1:851725282759:table/Products/stream/2024-07-01T08:20:55.038

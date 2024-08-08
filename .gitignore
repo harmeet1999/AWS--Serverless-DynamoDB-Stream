@@ -1,0 +1,8 @@
+node_modules
+.vscode
+node_modules
+dist
+impCred.txt
+package-lock.json
+build
+.serverless
